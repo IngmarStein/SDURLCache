@@ -82,23 +82,26 @@ static NSDateFormatter* CreateDateFormatter(NSString *format)
     NSDate *date = nil;
 
     // RFC 1123 date format - Sun, 06 Nov 1994 08:49:37 GMT
-	@synchronized(self) {
-		if (!RFC1123DateFormatter) RFC1123DateFormatter = [CreateDateFormatter(@"EEE, dd MMM yyyy HH:mm:ss z") retain];
-	}
+    @synchronized(self)
+    {
+        if (!RFC1123DateFormatter) RFC1123DateFormatter = [CreateDateFormatter(@"EEE, dd MMM yyyy HH:mm:ss z") retain];
+    }
     date = [RFC1123DateFormatter dateFromString:httpDate];
     if (!date)
     {
         // ANSI C date format - Sun Nov  6 08:49:37 1994
-		@synchronized(self) {
-			if (!ANSICDateFormatter) ANSICDateFormatter = [CreateDateFormatter(@"EEE MMM d HH:mm:ss yyyy") retain];
-		}
+        @synchronized(self)
+        {
+            if (!ANSICDateFormatter) ANSICDateFormatter = [CreateDateFormatter(@"EEE MMM d HH:mm:ss yyyy") retain];
+        }
         date = [ANSICDateFormatter dateFromString:httpDate];
         if (!date)
         {
             // RFC 850 date format - Sunday, 06-Nov-94 08:49:37 GMT
-			@synchronized(self) {
-				if (!RFC850DateFormatter) RFC850DateFormatter = [CreateDateFormatter(@"EEEE, dd-MMM-yy HH:mm:ss z") retain];
-			}
+            @synchronized(self)
+            {
+                if (!RFC850DateFormatter) RFC850DateFormatter = [CreateDateFormatter(@"EEEE, dd-MMM-yy HH:mm:ss z") retain];
+            }
             date = [RFC850DateFormatter dateFromString:httpDate];
         }
     }
@@ -243,6 +246,7 @@ static NSDateFormatter* CreateDateFormatter(NSString *format)
                                      nil];
                 }
                 diskCacheInfoDirty = NO;
+                diskCacheUsage = [[diskCacheInfo objectForKey:kSDURLCacheInfoDiskUsageKey] intValue];
 
                 periodicMaintenanceTimer = [[NSTimer scheduledTimerWithTimeInterval:5
                                                                              target:self
@@ -501,6 +505,10 @@ static NSDateFormatter* CreateDateFormatter(NSString *format)
 
 - (NSUInteger)currentDiskUsage
 {
+    if (!diskCacheInfo)
+    {
+        [self diskCacheInfo];
+    }
     return diskCacheUsage;
 }
 
@@ -514,12 +522,12 @@ static NSDateFormatter* CreateDateFormatter(NSString *format)
 - (void)removeAllCachedResponses
 {
     [super removeAllCachedResponses];
-}
-
-- (BOOL)clearCache
-{
     NSFileManager *fileManager = [[[NSFileManager alloc] init] autorelease];
-    return [fileManager removeItemAtPath:diskCachePath error:NULL];
+    [fileManager removeItemAtPath:diskCachePath error:NULL];
+    @synchronized(self)
+    {
+        [diskCacheInfo release], diskCacheInfo = nil;
+    }
 }
 
 - (BOOL)isCached:(NSURL *)url
